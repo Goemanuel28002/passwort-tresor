@@ -1,0 +1,1701 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; base-uri 'none'; form-action 'none'">
+<meta name="color-scheme" content="light dark">
+<meta name="referrer" content="no-referrer">
+<title>Passwort-Tresor</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #e9ede7;
+  --panel: #f6f8f3;
+  --input: #fbfcf9;
+  --line: #c9d2c8;
+  --text: #13221f;
+  --muted: #566863;
+  --primary: #1c4a40;
+  --primary-ink: #f3f7f2;
+  --brass: #b08d3c;
+  --brass-text: #7a5a12;
+  --steel: #7f948d;
+  --hatch: #d5ddd4;
+  --danger: #b3372e;
+  --ok: #2a7a52;
+  --bar: rgba(246, 248, 243, .92);
+  --shadow: 0 18px 48px rgba(19, 34, 31, .18);
+  --serif: "Palatino Linotype", Palatino, "Book Antiqua", "URW Palladio L", Georgia, serif;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0d1a18;
+    --panel: #132522;
+    --input: #0f1f1c;
+    --line: #26403a;
+    --text: #e3ebe6;
+    --muted: #8fa59d;
+    --primary: #d3b06a;
+    --primary-ink: #1d1600;
+    --brass: #d3b06a;
+    --brass-text: #d3b06a;
+    --steel: #5f7a72;
+    --hatch: #0a1514;
+    --danger: #ff8279;
+    --ok: #62d3a2;
+    --bar: rgba(19, 37, 34, .92);
+    --shadow: 0 18px 48px rgba(0, 0, 0, .55);
+  }
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.55 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--brass-text); text-underline-offset: 3px; }
+svg { display: block; flex: none; }
+.mono { font-family: var(--mono); letter-spacing: .01em; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+/* ---------- Schaltflächen ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 40px; padding: 0 16px;
+  border: 1px solid var(--line); border-radius: 6px;
+  background: var(--panel); color: var(--text);
+  font-weight: 600; cursor: pointer; white-space: nowrap;
+  transition: border-color .15s, background .15s;
+}
+.btn:hover { border-color: var(--steel); }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.danger { color: var(--danger); }
+.btn.danger.solid { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn.ghost { background: transparent; border-color: transparent; }
+.btn.ghost:hover { background: var(--line); }
+.btn.big { min-height: 46px; padding: 0 22px; }
+.btn.block { width: 100%; }
+.btn[disabled] { opacity: .55; cursor: not-allowed; }
+.icon-btn {
+  display: inline-grid; place-items: center; flex: none;
+  width: 38px; height: 38px; padding: 0;
+  border: 1px solid transparent; border-radius: 6px;
+  background: transparent; color: var(--muted); cursor: pointer;
+}
+.icon-btn:hover { background: var(--line); color: var(--text); }
+.input-row .icon-btn { border-color: var(--line); background: var(--input); height: 42px; width: 42px; }
+
+/* ---------- Formulare ---------- */
+.field { display: grid; gap: 6px; margin-bottom: 18px; }
+.field > label, .field > .label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.input {
+  width: 100%; min-height: 42px; padding: 9px 12px;
+  background: var(--input); border: 1px solid var(--line); border-radius: 6px;
+}
+.input::placeholder { color: var(--muted); opacity: .8; }
+textarea.input { resize: vertical; min-height: 110px; line-height: 1.5; }
+.input-row { display: flex; gap: 8px; align-items: stretch; }
+.input-row .input { flex: 1; min-width: 0; }
+.check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.field > label.check { font-size: 15px; font-weight: 400; color: var(--text); }
+.check input { margin-top: 4px; accent-color: var(--primary); width: 16px; height: 16px; }
+.error { color: var(--danger); font-size: 14px; min-height: 22px; margin: 4px 0 8px; }
+.hint { font-size: 13px; color: var(--muted); }
+.stack { display: grid; gap: 12px; }
+.row-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.row-btns.end { justify-content: flex-end; }
+
+/* Stärkeanzeige */
+.meter { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.meter .segs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; width: 132px; flex: none; }
+.meter .seg { height: 5px; border-radius: 2px; background: var(--line); }
+.meter[data-score="0"] .seg.on { background: var(--danger); }
+.meter[data-score="1"] .seg.on { background: #d8742f; }
+.meter[data-score="2"] .seg.on { background: #c4a21f; }
+.meter[data-score="3"] .seg.on { background: #7fb040; }
+.meter[data-score="4"] .seg.on { background: var(--ok); }
+.meter-label { font-size: 13px; color: var(--muted); }
+
+/* ---------- Tresortür ---------- */
+.hatch { overflow: visible; transition: opacity .3s ease .5s, transform .8s ease; }
+.h-frame { fill: var(--hatch); stroke: var(--steel); stroke-width: 5; }
+.tick { stroke: var(--steel); stroke-width: 1.5; stroke-linecap: round; }
+.tick.long { stroke: var(--brass); stroke-width: 2.5; }
+.h-face { fill: var(--panel); stroke: var(--brass); stroke-width: 2; }
+.spoke { stroke: var(--steel); stroke-width: 7; stroke-linecap: round; }
+.knob { fill: var(--brass); }
+.hub { fill: var(--primary); stroke: var(--brass); stroke-width: 2; }
+.keyhole { fill: var(--panel); }
+.dial, .wheel { transform-origin: 100px 100px; }
+.wheel { transition: transform .75s cubic-bezier(.5, 0, .2, 1); }
+.hatch.busy .dial { animation: spin 1.6s linear infinite; }
+.hatch.open .wheel { transform: rotate(240deg); }
+.hatch.open { opacity: 0; transform: scale(1.08); }
+.hatch.shake { animation: shake .4s; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes shake {
+  20% { transform: translateX(-7px); } 40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); } 80% { transform: translateX(3px); }
+}
+
+/* ---------- Einstiegsbildschirme ---------- */
+#app { min-height: 100%; display: flex; flex-direction: column; }
+.center { flex: 1; display: grid; place-items: center; padding: 32px 20px; }
+.gate { width: 100%; max-width: 420px; display: grid; justify-items: center; text-align: center; }
+.gate .hatch { margin-bottom: 20px; }
+.gate h1 { font: 600 34px/1.15 var(--serif); letter-spacing: .01em; }
+.gate .lead { margin: 10px 0 26px; color: var(--muted); max-width: 34ch; }
+.gate form, .gate .stack { width: 100%; text-align: left; }
+.gate .stack { justify-items: stretch; }
+.gate .field { text-align: left; }
+.facts { list-style: none; margin: 26px 0 0; padding: 18px 0 0; border-top: 1px solid var(--line); width: 100%; display: grid; gap: 6px; color: var(--muted); font-size: 14px; text-align: left; }
+.note { width: 100%; margin-top: 18px; padding: 12px 14px; border-left: 3px solid var(--brass); background: var(--panel); font-size: 14px; text-align: left; }
+.note .btn { margin-top: 10px; }
+.link-btn { background: none; border: 0; padding: 4px; color: var(--brass-text); font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.caps-hint { color: var(--brass-text); font-size: 13px; margin-top: -10px; margin-bottom: 12px; }
+.gate .file-name { color: var(--muted); font-size: 14px; margin: 8px 0 22px; word-break: break-all; }
+
+/* ---------- Hauptansicht ---------- */
+.shell { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+.topbar {
+  display: flex; align-items: center; gap: 10px; padding: 10px 18px;
+  background: var(--bar); border-bottom: 1px solid var(--line);
+}
+.brand-sm { display: flex; align-items: center; gap: 10px; color: var(--brass-text); }
+.brand-sm .brand-name { font: 600 19px/1 var(--serif); color: var(--text); letter-spacing: .01em; }
+.spacer { flex: 1; }
+.status {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 12px;
+  border: 1px solid var(--line); border-radius: 6px; background: transparent;
+  font-size: 13px; color: var(--muted); cursor: default;
+}
+.status[data-state="saved"] { color: var(--ok); }
+.status[data-state="dirty"], .status[data-state="error"] { cursor: pointer; font-weight: 600; }
+.status[data-state="dirty"] { color: var(--brass-text); border-color: var(--brass); }
+.status[data-state="error"] { color: var(--danger); border-color: var(--danger); }
+.layout { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(270px, 350px) 1fr; }
+.sidebar { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--line); background: var(--panel); }
+.side-tools { display: grid; gap: 10px; padding: 14px; border-bottom: 1px solid var(--line); }
+.count { font-size: 13px; color: var(--muted); padding: 10px 18px 4px; }
+.list { list-style: none; margin: 0; padding: 0 0 12px; overflow: auto; flex: 1; }
+.item {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 18px 10px 15px;
+  border: 0; border-left: 3px solid transparent; border-bottom: 1px solid var(--line);
+  background: transparent; text-align: left; cursor: pointer;
+}
+.item:hover { background: var(--bg); }
+.item[aria-current="true"] { background: var(--bg); border-left-color: var(--brass); }
+.item-text { display: grid; min-width: 0; }
+.item-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item-sub { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mark {
+  display: grid; place-items: center; width: 36px; height: 36px; flex: none;
+  border: 1px solid var(--brass); border-radius: 6px;
+  font: 600 17px/1 var(--serif); color: var(--brass-text);
+}
+.mark.lg { width: 52px; height: 52px; font-size: 24px; }
+.empty-list { padding: 28px 20px; color: var(--muted); font-size: 14px; }
+.empty-list strong { display: block; color: var(--text); font-size: 16px; margin-bottom: 4px; }
+
+.detail { overflow: auto; padding: 32px clamp(20px, 5vw, 56px) 48px; }
+.detail-inner { max-width: 720px; }
+.back { display: none; margin: -8px 0 14px -10px; }
+.empty-detail { height: 100%; display: grid; place-content: center; justify-items: center; text-align: center; gap: 6px; color: var(--muted); }
+.empty-detail .hatch { margin-bottom: 14px; opacity: .55; }
+.empty-detail strong { font: 600 22px/1.2 var(--serif); color: var(--text); }
+.empty-detail .btn { margin-top: 16px; }
+.view-head { display: flex; align-items: center; gap: 16px; margin-bottom: 26px; }
+.view-head h2 { font: 600 30px/1.15 var(--serif); overflow-wrap: anywhere; }
+.ledger { margin: 0; border-top: 1px solid var(--line); }
+.ledger-row { display: grid; grid-template-columns: 150px 1fr auto; gap: 8px 16px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.ledger-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.ledger-value { min-width: 0; overflow-wrap: anywhere; }
+.ledger-value.notes { white-space: pre-wrap; }
+.ledger-actions { display: flex; gap: 2px; }
+.meta { margin: 20px 0 28px; font-size: 13px; color: var(--muted); display: grid; gap: 2px; }
+.view-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.form-head { font: 600 26px/1.2 var(--serif); margin-bottom: 24px; }
+.form-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+
+/* ---------- Dialoge ---------- */
+.overlay { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px; background: rgba(8, 16, 14, .6); }
+.modal {
+  width: 100%; max-width: 460px; max-height: calc(100dvh - 40px); overflow: auto;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow);
+  animation: pop .16s ease-out;
+}
+.modal.wide { max-width: 560px; }
+@keyframes pop { from { transform: translateY(8px) scale(.98); opacity: 0; } }
+.modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px 4px; }
+.modal-head h2 { font: 600 21px/1.25 var(--serif); }
+.modal-body { padding: 12px 20px 20px; }
+.modal-foot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; padding: 14px 20px; border-top: 1px solid var(--line); }
+.settings-section { padding: 6px 0 14px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
+.settings-section:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+.settings-section h3 { font-size: 15px; margin-bottom: 12px; }
+.settings-section .field { margin-bottom: 14px; }
+.gen-out { font-size: 17px; word-break: break-all; }
+.range-row { display: flex; align-items: center; gap: 14px; }
+.range-row input[type="range"] { flex: 1; accent-color: var(--primary); }
+.range-row output { min-width: 2ch; text-align: right; font-weight: 600; }
+.checks { display: grid; gap: 10px; margin: 6px 0 18px; }
+
+/* ---------- Hinweise ---------- */
+#toasts { position: fixed; z-index: 80; left: 50%; bottom: 20px; transform: translateX(-50%); display: grid; gap: 8px; justify-items: center; width: min(92vw, 460px); pointer-events: none; }
+.toast {
+  padding: 10px 16px; border-radius: 6px; font-size: 14px; text-align: center;
+  background: var(--text); color: var(--bg); box-shadow: var(--shadow);
+  animation: pop .18s ease-out; transition: opacity .3s;
+}
+.toast.error { background: var(--danger); color: #fff; }
+.toast.out { opacity: 0; }
+
+@media (max-width: 760px) {
+  .layout { grid-template-columns: 1fr; }
+  .layout[data-pane="list"] .detail { display: none; }
+  .layout[data-pane="detail"] .sidebar { display: none; }
+  .back { display: inline-flex; }
+  .ledger-row { grid-template-columns: 1fr auto; }
+  .ledger-label { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .hide-sm { display: none; }
+  .topbar { padding: 8px 12px; gap: 8px; }
+  .brand-sm .brand-name { display: none; }
+  .status { max-width: 56vw; min-height: 34px; padding: 4px 10px; text-align: left; line-height: 1.25; }
+  .gate h1 { font-size: 29px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<noscript>Der Passwort-Tresor benötigt JavaScript.</noscript>
+<div id="app"></div>
+<div id="toasts" aria-live="polite"></div>
+<script>
+'use strict';
+
+// <CORE>
+// ===================================================================
+// Kern: Verschlüsselung, Passwort-Erzeugung, Stärkeschätzung, CSV
+// ===================================================================
+const APP_ID = 'passwort-tresor';
+const FORMAT_VERSION = 1;
+const DEFAULT_ITERATIONS = 600000;
+const MIN_ITERATIONS = 100000;
+const MAX_ITERATIONS = 10000000;
+const MIN_MASTER_LENGTH = 12;
+const LOCK_CHOICES = [1, 2, 5, 10, 15, 30];
+const TE = new TextEncoder();
+const TD = new TextDecoder();
+
+class VaultError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.name = 'VaultError';
+    this.code = code;
+  }
+}
+
+function b64e(bytes) {
+  let s = '';
+  const CH = 0x8000;
+  for (let i = 0; i < bytes.length; i += CH) {
+    s += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+  }
+  return btoa(s);
+}
+
+function b64d(str) {
+  const bin = atob(str);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function newId() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return b64e(crypto.getRandomValues(new Uint8Array(16))).replace(/[^A-Za-z0-9]/g, '');
+}
+
+function emptyData() {
+  const now = Date.now();
+  return { entries: [], deleted: {}, settings: { autoLockMinutes: 5 }, createdAt: now, updatedAt: now };
+}
+
+function normalizeData(d) {
+  if (!d || typeof d !== 'object' || !Array.isArray(d.entries)) {
+    throw new VaultError('format', 'Der Tresor enthält ungültige Daten.');
+  }
+  const str = v => (v == null ? '' : String(v));
+  const num = (v, fallback) => (Number.isFinite(Number(v)) && Number(v) > 0 ? Number(v) : fallback);
+  const now = Date.now();
+  const settings = Object.assign({ autoLockMinutes: 5 }, d.settings && typeof d.settings === 'object' ? d.settings : {});
+  if (!LOCK_CHOICES.includes(Number(settings.autoLockMinutes))) settings.autoLockMinutes = 5;
+  settings.autoLockMinutes = Number(settings.autoLockMinutes);
+  const entries = d.entries.map(e => ({
+    id: str(e && e.id) || newId(),
+    title: str(e && e.title),
+    url: str(e && e.url),
+    username: str(e && e.username),
+    password: str(e && e.password),
+    notes: str(e && e.notes),
+    createdAt: num(e && e.createdAt, now),
+    updatedAt: num(e && e.updatedAt, now)
+  }));
+  // Löschmarkierungen: merken, welche Einträge wann gelöscht wurden, damit der Abgleich sie nicht wiederbelebt.
+  const deleted = {};
+  if (d.deleted && typeof d.deleted === 'object') {
+    for (const [id, at] of Object.entries(d.deleted)) {
+      if (id !== '__proto__' && Number.isFinite(Number(at)) && Number(at) > 0) deleted[id] = Number(at);
+    }
+  }
+  return { entries, deleted, settings, createdAt: num(d.createdAt, now), updatedAt: num(d.updatedAt, now) };
+}
+
+async function deriveKey(password, saltBytes, iterations) {
+  const base = await crypto.subtle.importKey('raw', TE.encode(password.normalize('NFKC')), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', hash: 'SHA-256', salt: saltBytes, iterations },
+    base,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+function aadFor(kdf) {
+  return TE.encode(JSON.stringify([APP_ID, FORMAT_VERSION, kdf.name, kdf.hash, kdf.iterations, kdf.salt]));
+}
+
+async function encryptVault(data, key, kdf) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv, additionalData: aadFor(kdf) },
+    key,
+    TE.encode(JSON.stringify(data))
+  );
+  return JSON.stringify({
+    app: APP_ID,
+    version: FORMAT_VERSION,
+    kdf: { name: kdf.name, hash: kdf.hash, iterations: kdf.iterations, salt: kdf.salt },
+    cipher: { name: 'AES-GCM', iv: b64e(iv) },
+    data: b64e(new Uint8Array(ct))
+  }, null, 2);
+}
+
+function parseVaultFile(text) {
+  let o;
+  try { o = JSON.parse(text); } catch { throw new VaultError('format', 'Diese Datei ist kein Passwort-Tresor.'); }
+  if (o && o.app === APP_ID && Number.isInteger(o.version) && o.version > FORMAT_VERSION) {
+    throw new VaultError('format', 'Diese Tresor-Datei wurde mit einer neueren Version erstellt und kann hier nicht geöffnet werden.');
+  }
+  const ok = o && o.app === APP_ID && o.version === FORMAT_VERSION &&
+    o.kdf && o.cipher && typeof o.data === 'string' &&
+    o.kdf.name === 'PBKDF2' && o.kdf.hash === 'SHA-256' &&
+    Number.isInteger(o.kdf.iterations) && typeof o.kdf.salt === 'string' &&
+    o.cipher.name === 'AES-GCM' && typeof o.cipher.iv === 'string';
+  if (!ok) throw new VaultError('format', 'Diese Datei ist kein gültiger Passwort-Tresor.');
+  if (o.kdf.iterations < MIN_ITERATIONS || o.kdf.iterations > MAX_ITERATIONS) {
+    throw new VaultError('format', 'Die Tresor-Datei enthält ungültige Sicherheitsparameter.');
+  }
+  return o;
+}
+
+async function createVault(password, iterations = DEFAULT_ITERATIONS) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const kdf = { name: 'PBKDF2', hash: 'SHA-256', iterations, salt: b64e(salt) };
+  const key = await deriveKey(password, salt, iterations);
+  const data = emptyData();
+  const text = await encryptVault(data, key, kdf);
+  return { key, kdf, data, text };
+}
+
+async function unlockVault(text, password) {
+  const file = parseVaultFile(text);
+  const key = await deriveKey(password, b64d(file.kdf.salt), file.kdf.iterations);
+  let plain;
+  try {
+    plain = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: b64d(file.cipher.iv), additionalData: aadFor(file.kdf) },
+      key,
+      b64d(file.data)
+    );
+  } catch {
+    throw new VaultError('auth', 'Das Master-Passwort ist falsch oder die Datei wurde verändert.');
+  }
+  let data;
+  try { data = JSON.parse(TD.decode(plain)); } catch { throw new VaultError('format', 'Der Tresor enthält ungültige Daten.'); }
+  const k = file.kdf;
+  return { key, kdf: { name: k.name, hash: k.hash, iterations: k.iterations, salt: k.salt }, data: normalizeData(data) };
+}
+
+async function rekeyVault(newPassword, iterations = DEFAULT_ITERATIONS) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const kdf = { name: 'PBKDF2', hash: 'SHA-256', iterations, salt: b64e(salt) };
+  const key = await deriveKey(newPassword, salt, iterations);
+  return { key, kdf };
+}
+
+// ---- Stärkeschätzung (grobe Näherung, kein Ersatz für ein Wörterbuch) ----
+const COMMON = new Set([
+  '123456', '1234567', '12345678', '123456789', '1234567890', '12345', '1234', '111111', '000000', '0000',
+  '123123', 'abc123', 'password', 'passwort', 'passw0rd', 'qwerty', 'qwertz', 'qwertyuiop', 'asdfgh', 'asdfghjkl',
+  'zxcvbnm', 'yxcvbnm', '1q2w3e4r', '1qaz2wsx', 'iloveyou', 'ichliebedich', 'admin', 'administrator', 'letmein',
+  'welcome', 'willkommen', 'monkey', 'dragon', 'sunshine', 'master', 'hallo', 'hallo123', 'geheim', 'test', 'test123',
+  'fussball', 'schatz', 'liebe', 'michael', 'roblox', 'robux', 'minecraft', 'fortnite', 'trustno1', 'baseball',
+  'football', 'superman', 'batman', 'princess', 'login', 'starwars', 'tresor', 'passwort1', 'password1'
+]);
+const SEQ_BASE = ['abcdefghijklmnopqrstuvwxyz', 'qwertzuiopü', 'asdfghjklöä', 'yxcvbnm', 'qwertyuiop', 'zxcvbnm', '01234567890'];
+const SEQS = SEQ_BASE.concat(SEQ_BASE.map(s => Array.from(s).reverse().join('')));
+const STRENGTH_LABELS = ['Sehr schwach', 'Schwach', 'Mittel', 'Stark', 'Sehr stark'];
+
+function estimateStrength(pw) {
+  if (!pw) return { bits: 0, score: 0, label: STRENGTH_LABELS[0] };
+  const chars = Array.from(pw);
+  const len = chars.length;
+  let pool = 0;
+  if (/[a-zßäöü]/.test(pw)) pool += 26;
+  if (/[A-ZÄÖÜ]/.test(pw)) pool += 26;
+  if (/[0-9]/.test(pw)) pool += 10;
+  if (/[^A-Za-z0-9ßäöüÄÖÜ]/.test(pw)) pool += 33;
+  if (pool === 0) pool = 26;
+  const distinct = new Set(chars).size;
+  const effLen = distinct + 0.5 * (len - distinct);
+  let bits = effLen * Math.log2(pool) * 0.85;
+
+  const lower = pw.toLowerCase();
+  let hits = 0;
+  for (let i = 0; i + 3 <= lower.length; i++) {
+    const tri = lower.slice(i, i + 3);
+    for (const s of SEQS) { if (s.includes(tri)) { hits++; break; } }
+  }
+  bits -= hits * 4;
+
+  const deleet = lower.replace(/[@4]/g, 'a').replace(/3/g, 'e').replace(/[1!|]/g, 'i').replace(/0/g, 'o').replace(/[$5]/g, 's').replace(/7/g, 't');
+  const strip = s => s.replace(/[^a-z]+$/, '');
+  if ([lower, deleet, strip(lower), strip(deleet)].some(x => COMMON.has(x))) bits = Math.min(bits, 12);
+
+  // Wortfolgen (Buchstaben mit Leerzeichen oder Bindestrichen) sind weniger zufällig als Zeichenketten.
+  if (/[\s\-_.]/.test(pw) && /^[A-Za-zßäöüÄÖÜ][A-Za-zßäöüÄÖÜ \-_.]*$/.test(pw)) bits *= 0.6;
+
+  bits = Math.max(0, bits);
+  const score = bits < 28 ? 0 : bits < 45 ? 1 : bits < 60 ? 2 : bits < 85 ? 3 : 4;
+  return { bits: Math.round(bits), score, label: STRENGTH_LABELS[score] };
+}
+
+function masterPasswordProblem(p1, p2) {
+  if (Array.from(p1).length < MIN_MASTER_LENGTH) return `Das Master-Passwort muss mindestens ${MIN_MASTER_LENGTH} Zeichen lang sein.`;
+  if (p1 !== p2) return 'Die beiden Eingaben stimmen nicht überein.';
+  if (estimateStrength(p1).score < 2) return 'Dieses Master-Passwort ist zu leicht zu erraten. Nimm mehrere zufällige Wörter oder eine längere, gemischte Zeichenfolge.';
+  return '';
+}
+
+// ---- Passwort-Generator ----
+const CHARSETS = {
+  lower: 'abcdefghijklmnopqrstuvwxyz',
+  upper: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  digits: '0123456789',
+  symbols: '!@#$%&*?+-_=.,:;/()[]{}~'
+};
+const AMBIGUOUS = /[0O1lI|]/g;
+
+function randomInt(max) {
+  const limit = Math.floor(0x100000000 / max) * max;
+  const buf = new Uint32Array(1);
+  let x;
+  do { crypto.getRandomValues(buf); x = buf[0]; } while (x >= limit);
+  return x % max;
+}
+
+function generatePassword(opts = {}) {
+  const o = Object.assign({ length: 20, lower: true, upper: true, digits: true, symbols: true, avoidAmbiguous: true }, opts);
+  let sets = ['lower', 'upper', 'digits', 'symbols'].filter(k => o[k]).map(k => (o.avoidAmbiguous ? CHARSETS[k].replace(AMBIGUOUS, '') : CHARSETS[k]));
+  if (!sets.length) sets = [o.avoidAmbiguous ? CHARSETS.lower.replace(AMBIGUOUS, '') : CHARSETS.lower];
+  const length = Math.max(sets.length, Math.min(128, Math.floor(Number(o.length) || 20)));
+  const all = sets.join('');
+  const out = sets.map(s => s[randomInt(s.length)]);
+  while (out.length < length) out.push(all[randomInt(all.length)]);
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = randomInt(i + 1);
+    const t = out[i]; out[i] = out[j]; out[j] = t;
+  }
+  return out.join('');
+}
+
+// ---- CSV ----
+function parseCsv(text) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const firstLine = text.split(/\r?\n/, 1)[0] || '';
+  const delim = firstLine.split(';').length > firstLine.split(',').length ? ';' : ',';
+  const rows = [];
+  let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false;
+      } else field += c;
+    } else if (c === '"' && field === '') {
+      inQ = true;
+    } else if (c === delim) {
+      row.push(field); field = '';
+    } else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(field); field = '';
+      rows.push(row); row = [];
+    } else field += c;
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows.filter(r => r.some(f => f.trim() !== ''));
+}
+
+function titleFromUrl(url) {
+  try {
+    const u = new URL(/^[a-z][a-z0-9+.-]*:/i.test(url) ? url : 'https://' + url);
+    return u.hostname.replace(/^www\./, '') || url;
+  } catch { return url; }
+}
+
+function entriesFromCsv(text) {
+  const rows = parseCsv(text);
+  if (rows.length < 2) throw new VaultError('csv', 'Die CSV-Datei enthält keine Einträge.');
+  const head = rows[0].map(s => s.trim().toLowerCase());
+  const find = names => head.findIndex(h => names.includes(h));
+  const idx = {
+    title: find(['name', 'title', 'titel', 'login_name']),
+    url: find(['url', 'login_uri', 'website', 'web site', 'uri', 'webseite']),
+    user: find(['username', 'login_username', 'user', 'login', 'benutzername', 'benutzer', 'e-mail', 'email']),
+    pass: find(['password', 'login_password', 'passwort', 'kennwort']),
+    notes: find(['note', 'notes', 'notizen', 'notiz', 'extra', 'kommentar'])
+  };
+  if (idx.pass < 0) throw new VaultError('csv', 'In der CSV-Datei wurde keine Spalte „password“ gefunden.');
+  const get = (r, i) => (i >= 0 && r[i] != null ? String(r[i]) : '');
+  const now = Date.now();
+  const entries = [];
+  let skipped = 0;
+  for (const r of rows.slice(1)) {
+    const url = get(r, idx.url).trim();
+    const username = get(r, idx.user).trim();
+    const password = get(r, idx.pass);
+    if (!password && !username) { skipped++; continue; }
+    const title = get(r, idx.title).trim() || (url ? titleFromUrl(url) : '') || 'Ohne Titel';
+    entries.push({ id: newId(), title, url, username, password, notes: get(r, idx.notes), createdAt: now, updatedAt: now });
+  }
+  return { entries, skipped };
+}
+
+function mergeImported(existing, incoming) {
+  const key = e => [e.url.trim().toLowerCase(), e.username.trim().toLowerCase(), e.password].join('\u0000');
+  const seen = new Set(existing.map(key));
+  const added = [];
+  let duplicates = 0;
+  for (const e of incoming) {
+    const k = key(e);
+    if (seen.has(k)) { duplicates++; continue; }
+    seen.add(k);
+    added.push(e);
+  }
+  return { added, duplicates };
+}
+
+// ---- Abgleich zweier Kopien desselben Tresors (zum Beispiel PC und Handy) ----
+// Je Eintrag gewinnt die neuere Änderung. Gelöschte Einträge bleiben gelöscht,
+// es sei denn, sie wurden danach woanders erneut bearbeitet.
+function mergeData(local, remote) {
+  const keyOf = e => [e.url.trim().toLowerCase(), e.username.trim().toLowerCase(), e.password].join('\u0000');
+  const localDeleted = local.deleted || {};
+  const deleted = Object.assign({}, localDeleted);
+  for (const [id, at] of Object.entries(remote.deleted || {})) deleted[id] = Math.max(deleted[id] || 0, at);
+  const isGone = e => deleted[e.id] !== undefined && deleted[e.id] >= e.updatedAt;
+  const stats = { added: 0, updated: 0, removed: 0, duplicates: 0 };
+
+  const entries = [];
+  for (const e of local.entries) {
+    if (isGone(e)) stats.removed++; else entries.push(Object.assign({}, e));
+  }
+  const byId = new Map(entries.map(e => [e.id, e]));
+  const seen = new Set(entries.map(keyOf));
+  for (const r of remote.entries) {
+    if (isGone(r)) continue;
+    const l = byId.get(r.id);
+    if (l) {
+      if (r.updatedAt > l.updatedAt) {
+        const differs = ['title', 'url', 'username', 'password', 'notes'].some(k => l[k] !== r[k]);
+        Object.assign(l, r);
+        if (differs) stats.updated++;
+      }
+    } else if (seen.has(keyOf(r))) {
+      stats.duplicates++;
+    } else {
+      const copy = Object.assign({}, r);
+      entries.push(copy); byId.set(copy.id, copy); seen.add(keyOf(copy));
+      stats.added++;
+    }
+  }
+  const changed = stats.added + stats.updated + stats.removed > 0 || Object.keys(deleted).length !== Object.keys(localDeleted).length;
+  return {
+    changed, stats,
+    data: { entries, deleted, settings: local.settings, createdAt: local.createdAt, updatedAt: changed ? Date.now() : local.updatedAt }
+  };
+}
+
+function toCsv(entries) {
+  const q = s => '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
+  const lines = ['name,url,username,password,note'];
+  for (const e of entries) lines.push([e.title, e.url, e.username, e.password, e.notes].map(q).join(','));
+  return lines.join('\r\n') + '\r\n';
+}
+// </CORE>
+
+// ===================================================================
+// Oberfläche
+// ===================================================================
+(function () {
+  const $app = document.getElementById('app');
+  const $toasts = document.getElementById('toasts');
+  const secureOK = !!(window.crypto && window.crypto.subtle);
+
+  const S = {
+    screen: 'welcome',
+    fs: typeof window.showOpenFilePicker === 'function' && typeof window.showSaveFilePicker === 'function',
+    file: null,          // { handle, name, text, dirty }
+    vault: null,         // { key, kdf, data }
+    selectedId: null,
+    editing: null,
+    query: '',
+    pane: 'list',
+    saveState: 'saved',
+    pending: 0,
+    queue: Promise.resolve(),
+    lockReason: '',
+    failCount: 0,
+    idleTimer: null,
+    lastActivity: 0,
+    clipTimer: null,
+    clipPending: false,
+    gen: { length: 20, lower: true, upper: true, digits: true, symbols: true, avoidAmbiguous: true }
+  };
+  const UI = {};
+  const PICKER_TYPES = [{ description: 'Passwort-Tresor', accept: { 'application/octet-stream': ['.pwv'], 'application/json': ['.json'] } }];
+
+  // ---------- kleine Helfer ----------
+  function h(tag, attrs, ...children) {
+    const el = document.createElement(tag);
+    if (attrs) {
+      for (const [k, v] of Object.entries(attrs)) {
+        if (v == null || v === false) continue;
+        if (k === 'class') el.className = v;
+        else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2), v);
+        else if (v === true) el.setAttribute(k, '');
+        else el.setAttribute(k, String(v));
+      }
+    }
+    for (const c of children.flat(Infinity)) {
+      if (c == null || c === false) continue;
+      el.append(c.nodeType ? c : document.createTextNode(String(c)));
+    }
+    return el;
+  }
+
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  function svg(tag, attrs, ...kids) {
+    const el = document.createElementNS(SVGNS, tag);
+    for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, String(v));
+    kids.forEach(k => el.append(k));
+    return el;
+  }
+
+  const ICONS = {
+    eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    'eye-off': '<path d="M3 3l18 18"/><path d="M10.6 6.1A10.6 10.6 0 0 1 12 6c6.5 0 10 6 10 6a17 17 0 0 1-3.2 3.9M6.6 6.7A17 17 0 0 0 2 12s3.5 6 10 6a10 10 0 0 0 4-.8"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+    copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>',
+    lock: '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+    sliders: '<path d="M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10M20 18h0"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/>',
+    edit: '<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="M14 6l4 4"/>',
+    external: '<path d="M14 4h6v6M20 4L10 14M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+    back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+    refresh: '<path d="M20 11a8 8 0 0 0-14.5-4M4 5v4h4M4 13a8 8 0 0 0 14.5 4M20 19v-4h-4"/>',
+    download: '<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',
+    upload: '<path d="M12 16V5M7 9l5-5 5 5M5 20h14"/>',
+    key: '<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/>',
+    x: '<path d="M6 6l12 12M18 6L6 18"/>'
+  };
+  function icon(name, size = 20) {
+    const t = document.createElement('template');
+    t.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="' + size + '" height="' + size +
+      '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[name] + '</svg>';
+    return t.content.firstElementChild;
+  }
+
+  // Tresortür: das Wiedererkennungsmerkmal der Anwendung
+  function hatch(size) {
+    const s = svg('svg', { viewBox: '0 0 200 200', width: size, height: size, class: 'hatch', role: 'img', 'aria-label': 'Tresortür' });
+    s.append(svg('circle', { cx: 100, cy: 100, r: 96, class: 'h-frame' }));
+    const dial = svg('g', { class: 'dial' });
+    for (let i = 0; i < 60; i++) {
+      const a = (i * 6 * Math.PI) / 180;
+      const long = i % 5 === 0;
+      const r1 = long ? 74 : 79, r2 = 86;
+      dial.append(svg('line', {
+        x1: (100 + r1 * Math.sin(a)).toFixed(2), y1: (100 - r1 * Math.cos(a)).toFixed(2),
+        x2: (100 + r2 * Math.sin(a)).toFixed(2), y2: (100 - r2 * Math.cos(a)).toFixed(2),
+        class: long ? 'tick long' : 'tick'
+      }));
+    }
+    s.append(dial);
+    s.append(svg('circle', { cx: 100, cy: 100, r: 66, class: 'h-face' }));
+    const wheel = svg('g', { class: 'wheel' });
+    for (let i = 0; i < 3; i++) {
+      const a = (i * 120 * Math.PI) / 180;
+      const x = 100 + 46 * Math.sin(a), y = 100 - 46 * Math.cos(a);
+      wheel.append(
+        svg('line', { x1: 100, y1: 100, x2: x.toFixed(2), y2: y.toFixed(2), class: 'spoke' }),
+        svg('circle', { cx: x.toFixed(2), cy: y.toFixed(2), r: 7, class: 'knob' })
+      );
+    }
+    wheel.append(svg('circle', { cx: 100, cy: 100, r: 15, class: 'hub' }));
+    s.append(wheel);
+    s.append(svg('circle', { cx: 100, cy: 98.5, r: 4.5, class: 'keyhole' }), svg('path', { d: 'M98 101h4l1.6 9h-7.2z', class: 'keyhole' }));
+    return s;
+  }
+
+  function logoMark(size) {
+    const s = svg('svg', { viewBox: '0 0 32 32', width: size, height: size, 'aria-hidden': 'true', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round' });
+    s.append(svg('circle', { cx: 16, cy: 16, r: 13 }), svg('circle', { cx: 16, cy: 16, r: 3.2 }));
+    for (let i = 0; i < 3; i++) {
+      const a = (i * 120 * Math.PI) / 180;
+      s.append(svg('line', { x1: (16 + 5 * Math.sin(a)).toFixed(2), y1: (16 - 5 * Math.cos(a)).toFixed(2), x2: (16 + 10 * Math.sin(a)).toFixed(2), y2: (16 - 10 * Math.cos(a)).toFixed(2) }));
+    }
+    return s;
+  }
+
+  function fmtDate(ts) {
+    try { return new Date(ts).toLocaleString('de-AT', { dateStyle: 'medium', timeStyle: 'short' }); } catch { return ''; }
+  }
+  const plural = (n, one, many) => (n === 1 ? '1 ' + one : n + ' ' + many);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const reducedMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const mark = (title, size) => h('span', { class: 'mark' + (size === 'lg' ? ' lg' : ''), 'aria-hidden': 'true' }, (Array.from((title || '').trim())[0] || '?').toUpperCase());
+
+  function safeUrl(u) {
+    try {
+      const x = new URL(/^[a-z][a-z0-9+.-]*:/i.test(u) ? u : 'https://' + u);
+      return x.protocol === 'http:' || x.protocol === 'https:' ? x.href : null;
+    } catch { return null; }
+  }
+
+  function toast(msg, kind = 'info', ms = 3600) {
+    // Gleiche Meldungen nicht stapeln und höchstens drei gleichzeitig zeigen.
+    [...$toasts.children].forEach(old => { if (old.textContent === msg) old.remove(); });
+    while ($toasts.children.length >= 3) $toasts.firstElementChild.remove();
+    const t = h('div', { class: 'toast ' + kind, role: kind === 'error' ? 'alert' : 'status' }, msg);
+    $toasts.append(t);
+    setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 320); }, ms);
+  }
+
+  // ---------- Zwischenablage ----------
+  function legacyCopy(text) {
+    const ta = h('textarea', { 'aria-hidden': 'true', tabindex: '-1', style: 'position:fixed;left:-9999px;top:0;opacity:0' });
+    ta.value = text;
+    document.body.append(ta);
+    ta.select();
+    let ok = false;
+    try { ok = typeof document.execCommand === 'function' && document.execCommand('copy'); } catch { ok = false; }
+    ta.remove();
+    return ok;
+  }
+  async function copyText(text, doneMsg, sensitive) {
+    let ok = false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); ok = true; }
+    } catch { ok = false; }
+    if (!ok) ok = legacyCopy(text);
+    if (!ok) { toast('Kopieren war nicht möglich. Markiere den Text und kopiere ihn von Hand.', 'error'); return; }
+    if (sensitive) {
+      clearTimeout(S.clipTimer);
+      S.clipPending = true;
+      S.clipTimer = setTimeout(clearClipboard, 30000);
+      toast(doneMsg + ' Die Zwischenablage wird in 30 Sekunden geleert.');
+    } else toast(doneMsg);
+  }
+  function clearClipboard() {
+    clearTimeout(S.clipTimer);
+    if (!S.clipPending) return;
+    S.clipPending = false;
+    try { if (navigator.clipboard) navigator.clipboard.writeText('').catch(() => {}); } catch { /* ignorieren */ }
+  }
+
+  // ---------- Dateien ----------
+  function downloadText(text, filename, mime) {
+    const blob = new Blob([text], { type: mime || 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = h('a', { href: url, download: filename });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 15000);
+  }
+
+  function pickFile(accept) {
+    return new Promise((resolve, reject) => {
+      const input = h('input', { type: 'file', accept: accept || null });
+      input.addEventListener('change', async () => {
+        const f = input.files && input.files[0];
+        if (!f) return resolve(null);
+        try { resolve({ name: f.name, text: await f.text() }); } catch (e) { reject(e); }
+      });
+      input.addEventListener('cancel', () => resolve(null));
+      input.click();
+    });
+  }
+
+  async function pickVaultFile(readOnly) {
+    if (S.fs) {
+      let handles;
+      try { handles = await window.showOpenFilePicker({ multiple: false, types: PICKER_TYPES }); }
+      catch (e) { if (e && e.name === 'AbortError') return null; throw e; }
+      const handle = handles[0];
+      if (!readOnly) {
+        try { if (handle.requestPermission) await handle.requestPermission({ mode: 'readwrite' }); } catch { /* wird beim Speichern erneut angefragt */ }
+      }
+      const file = await handle.getFile();
+      return { handle, name: file.name, text: await file.text() };
+    }
+    // Bewusst ohne Dateityp-Filter: Android und iOS blenden unbekannte Endungen wie .pwv sonst aus.
+    const f = await pickFile('');
+    return f ? { handle: null, name: f.name, text: f.text } : null;
+  }
+
+  // ---------- Dialoge ----------
+  const modals = [];
+  function openModal({ title, body, actions = [], wide = false, dismissable = true }) {
+    const prevFocus = document.activeElement;
+    const titleId = 'm' + Math.random().toString(36).slice(2);
+    const box = h('div', { class: 'modal' + (wide ? ' wide' : ''), role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': titleId },
+      h('div', { class: 'modal-head' },
+        h('h2', { id: titleId }, title),
+        dismissable ? h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Schließen', title: 'Schließen', onclick: () => api.close() }, icon('x')) : null),
+      h('div', { class: 'modal-body' }, body),
+      actions.length ? h('div', { class: 'modal-foot' }, ...actions) : null);
+    const overlay = h('div', { class: 'overlay' }, box);
+    overlay.addEventListener('mousedown', ev => { if (ev.target === overlay && dismissable) api.close(); });
+    const api = {
+      el: box, dismissable, closed: false, onClose: null,
+      close() {
+        if (api.closed) return;
+        api.closed = true;
+        overlay.remove();
+        const i = modals.indexOf(api);
+        if (i >= 0) modals.splice(i, 1);
+        if (prevFocus && prevFocus.focus && document.contains(prevFocus)) prevFocus.focus();
+        if (api.onClose) api.onClose();
+      }
+    };
+    document.body.append(overlay);
+    modals.push(api);
+    setTimeout(() => {
+      const f = box.querySelector('[autofocus]') ||
+        box.querySelector('input:not([type=checkbox]):not([type=range]):not([readonly]), textarea, select') ||
+        box.querySelector('button.primary');
+      if (f) f.focus();
+    }, 0);
+    return api;
+  }
+  function closeAllModals() { [...modals].forEach(m => m.close()); }
+
+  function confirmDialog({ title, text, confirmLabel = 'OK', cancelLabel = 'Abbrechen', danger = false }) {
+    return new Promise(resolve => {
+      let done = false;
+      const finish = v => { if (done) return; done = true; m.close(); resolve(v); };
+      const m = openModal({
+        title, body: h('p', {}, text),
+        actions: [
+          h('button', { class: 'btn', type: 'button', onclick: () => finish(false) }, cancelLabel),
+          h('button', { class: 'btn ' + (danger ? 'danger solid' : 'primary'), type: 'button', onclick: () => finish(true) }, confirmLabel)
+        ]
+      });
+      m.onClose = () => finish(false);
+    });
+  }
+  function noticeDialog(title, text) {
+    return new Promise(resolve => {
+      const m = openModal({ title, body: h('p', {}, text), actions: [h('button', { class: 'btn primary', type: 'button', onclick: () => m.close() }, 'Verstanden')] });
+      m.onClose = resolve;
+    });
+  }
+
+  document.addEventListener('keydown', ev => {
+    if (!modals.length) return;
+    const top = modals[modals.length - 1];
+    if (ev.key === 'Escape' && top.dismissable) { ev.preventDefault(); top.close(); return; }
+    if (ev.key === 'Tab') {
+      const f = [...top.el.querySelectorAll('button:not([disabled]), input:not([disabled]):not([type=hidden]), textarea:not([disabled]), select:not([disabled]), a[href]')].filter(x => !x.hidden);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last.focus(); }
+      else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first.focus(); }
+    }
+  });
+
+  // ---------- Formularbausteine ----------
+  function strengthMeter() {
+    const segs = [0, 1, 2, 3].map(() => h('span', { class: 'seg' }));
+    const label = h('span', { class: 'meter-label' });
+    const el = h('div', { class: 'meter', hidden: true }, h('div', { class: 'segs', 'aria-hidden': 'true' }, ...segs), label);
+    return {
+      el,
+      update(pw) {
+        if (!pw) { el.hidden = true; return; }
+        const r = estimateStrength(pw);
+        el.hidden = false;
+        el.dataset.score = String(r.score);
+        segs.forEach((s, i) => s.classList.toggle('on', i < Math.max(1, r.score)));
+        label.textContent = r.label + ' (geschätzt ' + r.bits + ' Bit)';
+      }
+    };
+  }
+
+  function pwField(label, id, autocomplete) {
+    const input = h('input', { class: 'input', type: 'password', id, autocomplete: autocomplete || 'current-password', spellcheck: 'false', autocapitalize: 'off' });
+    const toggle = h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Passwort anzeigen', title: 'Anzeigen', 'aria-pressed': 'false' }, icon('eye'));
+    toggle.addEventListener('click', () => {
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      toggle.replaceChildren(icon(show ? 'eye-off' : 'eye'));
+      toggle.setAttribute('aria-pressed', String(show));
+      toggle.setAttribute('aria-label', show ? 'Passwort verbergen' : 'Passwort anzeigen');
+      toggle.title = show ? 'Verbergen' : 'Anzeigen';
+    });
+    const wrap = h('div', { class: 'field' }, h('label', { for: id }, label), h('div', { class: 'input-row' }, input, toggle));
+    return { wrap, input };
+  }
+
+  function checkbox(label, checked, onchange) {
+    const input = h('input', { type: 'checkbox' });
+    input.checked = checked;
+    input.addEventListener('change', () => onchange(input.checked, input));
+    return h('label', { class: 'check' }, input, h('span', {}, label));
+  }
+
+  // ---------- Bildschirme ----------
+  function render() {
+    $app.replaceChildren();
+    for (const k of Object.keys(UI)) delete UI[k];
+    if (!secureOK) return renderUnsupported();
+    ({ welcome: renderWelcome, create: renderCreate, unlock: renderUnlock, main: renderMain })[S.screen]();
+  }
+
+  function gate(...children) {
+    const el = h('main', { class: 'center' }, h('div', { class: 'gate' }, ...children));
+    $app.append(el);
+    return el;
+  }
+
+  function renderUnsupported() {
+    gate(hatch(150), h('h1', {}, 'Passwort-Tresor'),
+      h('p', { class: 'lead' }, 'Dieser Browser kann die nötige Verschlüsselung gerade nicht ausführen. Öffne die Datei per Doppelklick in einem aktuellen Chrome, Edge oder Firefox. Eine Seite über http:// im Netzwerk funktioniert nicht.'));
+  }
+
+  function renderWelcome() {
+    const err = h('div', { class: 'error', role: 'alert' });
+    const open = async () => {
+      err.textContent = '';
+      try {
+        const f = await pickVaultFile();
+        if (!f) return;
+        parseVaultFile(f.text);
+        S.file = { handle: f.handle, name: f.name, text: f.text, dirty: false };
+        S.failCount = 0;
+        S.lockReason = '';
+        S.screen = 'unlock';
+        render();
+      } catch (e) {
+        err.textContent = e instanceof VaultError ? e.message : 'Die Datei konnte nicht gelesen werden.';
+      }
+    };
+    gate(
+      hatch(190),
+      h('h1', {}, 'Passwort-Tresor'),
+      h('p', { class: 'lead' }, 'Deine Zugangsdaten, verschlüsselt auf deinem USB-Stick.'),
+      h('div', { class: 'stack' },
+        h('button', { class: 'btn primary big', type: 'button', onclick: () => { S.screen = 'create'; render(); } }, icon('plus'), 'Neuen Tresor erstellen'),
+        h('button', { class: 'btn big', type: 'button', onclick: open }, icon('upload'), 'Vorhandenen Tresor öffnen')),
+      err,
+      !S.fs ? h('div', { class: 'note' }, 'Dieser Browser kann nicht direkt in die Tresor-Datei schreiben. Nach jeder Änderung lädst du den Tresor herunter und ersetzt damit die alte Datei. Chrome und Edge am PC speichern automatisch.') : null,
+      h('ul', { class: 'facts' },
+        h('li', {}, 'Verschlüsselt mit AES-256, direkt in diesem Browser.'),
+        h('li', {}, 'Funktioniert ohne Internet. Es werden keine Daten gesendet.'),
+        h('li', {}, 'Ohne Master-Passwort ist die Tresor-Datei unlesbar.'))
+    );
+  }
+
+  function renderCreate() {
+    const p1 = pwField('Master-Passwort', 'mp1', 'new-password');
+    const p2 = pwField('Master-Passwort wiederholen', 'mp2', 'new-password');
+    const meter = strengthMeter();
+    p1.input.addEventListener('input', () => meter.update(p1.input.value));
+    p1.wrap.append(meter.el);
+    p1.wrap.append(h('div', { class: 'hint' }, 'Mindestens ' + MIN_MASTER_LENGTH + ' Zeichen. Am besten ein langer Satz aus mehreren Wörtern, den nur du kennst.'));
+    const ack = h('input', { type: 'checkbox', id: 'ack' });
+    const err = h('div', { class: 'error', role: 'alert' });
+    const hat = hatch(120);
+    const submitBtn = h('button', { class: 'btn primary big block', type: 'submit' }, S.fs ? 'Tresor erstellen und Speicherort wählen' : 'Tresor erstellen');
+
+    const form = h('form', { novalidate: true, onsubmit: async ev => {
+      ev.preventDefault();
+      err.textContent = '';
+      const problem = masterPasswordProblem(p1.input.value, p2.input.value);
+      if (problem) { err.textContent = problem; return; }
+      if (!ack.checked) { err.textContent = 'Bitte bestätige, dass du das Master-Passwort nicht wiederherstellen kannst.'; return; }
+      submitBtn.disabled = true;
+      let handle = null;
+      try {
+        if (S.fs) {
+          try {
+            handle = await window.showSaveFilePicker({ suggestedName: 'tresor.pwv', types: PICKER_TYPES });
+          } catch (e) {
+            if (e && e.name === 'AbortError') { submitBtn.disabled = false; return; }
+            throw e;
+          }
+        }
+        hat.classList.add('busy');
+        const v = await createVault(p1.input.value);
+        if (handle) {
+          const w = await handle.createWritable();
+          try { await w.write(v.text); await w.close(); } catch (e) { try { await w.abort(); } catch { /* ignorieren */ } throw e; }
+        }
+        S.file = { handle, name: handle ? handle.name : 'tresor.pwv', text: v.text, dirty: false };
+        S.vault = { key: v.key, kdf: v.kdf, data: v.data };
+        S.saveState = 'saved';
+        if (!handle) {
+          downloadText(v.text, S.file.name);
+          toast('Tresor heruntergeladen. Bewahre die Datei sicher auf, zum Beispiel auf deinem USB-Stick.');
+        }
+        p1.input.value = ''; p2.input.value = '';
+        enterMain();
+      } catch (e) {
+        hat.classList.remove('busy');
+        submitBtn.disabled = false;
+        err.textContent = 'Der Tresor konnte nicht erstellt werden: ' + (e && e.message ? e.message : 'unbekannter Fehler') + (handle ? ' Ist der USB-Stick noch angeschlossen?' : '');
+      }
+    } },
+      p1.wrap, p2.wrap,
+      h('div', { class: 'field' }, h('label', { class: 'check', for: 'ack' }, ack, h('span', {}, 'Ich habe verstanden: Wenn ich das Master-Passwort vergesse, kann niemand die Daten wiederherstellen.'))),
+      err, submitBtn,
+      h('div', { class: 'row-btns', style: 'margin-top:14px;justify-content:center' }, h('button', { class: 'link-btn', type: 'button', onclick: () => { S.screen = 'welcome'; render(); } }, 'Zurück'))
+    );
+    gate(hat, h('h1', {}, 'Neuer Tresor'), h('p', { class: 'lead' }, 'Das Master-Passwort ist der einzige Schlüssel zu deinen Daten.'), form);
+    p1.input.focus();
+  }
+
+  function renderUnlock() {
+    const pw = h('input', { class: 'input', type: 'password', id: 'upw', autocomplete: 'current-password', spellcheck: 'false', autocapitalize: 'off', 'aria-label': 'Master-Passwort' });
+    const err = h('div', { class: 'error', role: 'alert' });
+    const caps = h('div', { class: 'caps-hint', hidden: true }, 'Die Feststelltaste ist eingeschaltet.');
+    const hat = hatch(190);
+    const btn = h('button', { class: 'btn primary big block', type: 'submit' }, icon('lock'), 'Entsperren');
+    pw.addEventListener('keyup', e => { if (e.getModifierState) caps.hidden = !e.getModifierState('CapsLock'); });
+
+    const form = h('form', { novalidate: true, onsubmit: async ev => {
+      ev.preventDefault();
+      err.textContent = '';
+      const val = pw.value;
+      if (!val) { err.textContent = 'Bitte gib dein Master-Passwort ein.'; pw.focus(); return; }
+      btn.disabled = true; pw.disabled = true;
+      hat.classList.add('busy');
+      try {
+        const res = await unlockVault(S.file.text, val);
+        S.vault = { key: res.key, kdf: res.kdf, data: res.data };
+        S.failCount = 0;
+        pw.value = '';
+        hat.classList.add('open');
+        await sleep(reducedMotion() ? 0 : 850);
+        enterMain();
+      } catch (e) {
+        hat.classList.remove('busy');
+        if (e instanceof VaultError && e.code === 'auth') {
+          S.failCount++;
+          err.textContent = e.message;
+          hat.classList.add('shake');
+          setTimeout(() => hat.classList.remove('shake'), 450);
+          const wait = Math.min(5, S.failCount - 1);
+          pw.value = '';
+          if (wait > 0) {
+            for (let s = wait; s > 0; s--) { btn.lastChild.textContent = 'Bitte warte ' + s + ' s'; await sleep(1000); }
+            btn.lastChild.textContent = 'Entsperren';
+          }
+        } else {
+          err.textContent = e instanceof VaultError ? e.message : 'Der Tresor konnte nicht geöffnet werden.';
+        }
+        btn.disabled = false; pw.disabled = false; pw.focus();
+      }
+    } },
+      h('div', { class: 'field' }, h('label', { for: 'upw', class: 'label', hidden: true }, 'Master-Passwort'), pw),
+      caps, err, btn
+    );
+
+    const notes = [];
+    if (S.lockReason === 'auto') notes.push(h('div', { class: 'note' }, 'Der Tresor wurde nach längerer Inaktivität automatisch gesperrt.'));
+    if (S.file && S.file.dirty) {
+      notes.push(h('div', { class: 'note' },
+        'Die letzten Änderungen sind noch nicht in der Tresor-Datei gespeichert.',
+        h('div', {}, h('button', { class: 'btn', type: 'button', onclick: downloadCurrent }, icon('download'), 'Tresor herunterladen'))));
+    }
+    gate(hat, h('h1', {}, 'Tresor gesperrt'), h('p', { class: 'file-name' }, S.file ? S.file.name : ''),
+      form, ...notes,
+      h('div', { class: 'row-btns', style: 'margin-top:16px;justify-content:center' },
+        h('button', { class: 'link-btn', type: 'button', onclick: async () => {
+          if (S.file && S.file.dirty) {
+            const ok = await confirmDialog({ title: 'Andere Datei öffnen?', text: 'Die letzten Änderungen sind noch nicht gespeichert und gehen verloren.', confirmLabel: 'Trotzdem wechseln', danger: true });
+            if (!ok) return;
+          }
+          S.file = null; S.screen = 'welcome'; render();
+        } }, 'Andere Tresor-Datei öffnen')));
+    pw.focus();
+  }
+
+  function enterMain() {
+    S.screen = 'main';
+    S.selectedId = null; S.editing = null; S.query = ''; S.pane = 'list'; S.lockReason = '';
+    render();
+    resetIdle();
+  }
+
+  // ---------- Hauptansicht ----------
+  function renderMain() {
+    UI.status = h('button', { class: 'status', type: 'button', onclick: onStatusClick });
+    UI.search = h('input', { class: 'input', type: 'search', placeholder: 'Einträge durchsuchen', 'aria-label': 'Einträge durchsuchen', autocomplete: 'off', oninput: () => { S.query = UI.search.value; renderList(); } });
+    UI.count = h('div', { class: 'count', 'aria-live': 'polite' });
+    UI.list = h('ul', { class: 'list' });
+    UI.detail = h('section', { class: 'detail', 'aria-label': 'Eintrag' });
+    UI.layout = h('div', { class: 'layout', 'data-pane': S.pane },
+      h('aside', { class: 'sidebar' },
+        h('div', { class: 'side-tools' },
+          h('button', { class: 'btn primary block', type: 'button', onclick: newEntry }, icon('plus'), 'Neuer Eintrag'),
+          UI.search),
+        UI.count, UI.list),
+      UI.detail);
+    $app.append(h('div', { class: 'shell' },
+      h('header', { class: 'topbar' },
+        h('div', { class: 'brand-sm' }, logoMark(26), h('span', { class: 'brand-name' }, 'Passwort-Tresor')),
+        h('div', { class: 'spacer' }),
+        UI.status,
+        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Einstellungen', title: 'Einstellungen', onclick: openSettings }, icon('sliders')),
+        h('button', { class: 'btn', type: 'button', onclick: () => lock('manual') }, icon('lock', 18), h('span', { class: 'hide-sm' }, 'Sperren'))),
+      UI.layout));
+    renderStatus(); renderList(); renderDetail();
+  }
+
+  function syncPane() { if (UI.layout) UI.layout.dataset.pane = S.pane; }
+
+  function visibleEntries() {
+    const q = S.query.trim().toLowerCase();
+    const all = [...S.vault.data.entries].sort((a, b) => a.title.localeCompare(b.title, 'de', { sensitivity: 'base' }));
+    if (!q) return all;
+    return all.filter(e => [e.title, e.url, e.username, e.notes].some(f => f.toLowerCase().includes(q)));
+  }
+
+  function renderList() {
+    if (!UI.list || !S.vault) return;
+    const total = S.vault.data.entries.length;
+    const list = visibleEntries();
+    UI.list.replaceChildren();
+    UI.count.textContent = S.query.trim() ? list.length + ' von ' + plural(total, 'Eintrag', 'Einträgen') : plural(total, 'Eintrag', 'Einträge');
+    if (!list.length) {
+      UI.list.append(h('li', { class: 'empty-list' }, total === 0
+        ? [h('strong', {}, 'Noch keine Einträge'), 'Lege deinen ersten Zugang an. Gespeicherte Passwörter aus Chrome, Edge oder Firefox kannst du in den Einstellungen importieren.']
+        : [h('strong', {}, 'Keine Treffer'), 'Zu „' + S.query.trim() + '“ gibt es keinen Eintrag.']));
+      return;
+    }
+    for (const e of list) {
+      UI.list.append(h('li', {}, h('button', { class: 'item', type: 'button', 'aria-current': String(e.id === S.selectedId), onclick: () => selectEntry(e.id) },
+        mark(e.title),
+        h('span', { class: 'item-text' },
+          h('span', { class: 'item-title' }, e.title || 'Ohne Titel'),
+          h('span', { class: 'item-sub' }, e.username || e.url || '')))));
+    }
+  }
+
+  function renderStatus() {
+    if (!UI.status) return;
+    const st = S.saveState;
+    const labels = { saved: 'Gespeichert', saving: 'Speichert …', dirty: 'Nicht gespeichert: jetzt herunterladen', error: 'Speichern fehlgeschlagen: erneut versuchen' };
+    UI.status.dataset.state = st;
+    UI.status.textContent = labels[st];
+    UI.status.disabled = st === 'saved' || st === 'saving';
+  }
+
+  async function onStatusClick() {
+    if (S.saveState === 'dirty') downloadCurrent();
+    else if (S.saveState === 'error') {
+      if (S.file.handle && S.file.handle.requestPermission) { try { await S.file.handle.requestPermission({ mode: 'readwrite' }); } catch { /* ignorieren */ } }
+      await persist();
+      if (S.saveState === 'saved') toast('Tresor gespeichert.');
+    }
+  }
+
+  function downloadCurrent() {
+    if (!S.file) return;
+    downloadText(S.file.text, S.file.name || 'tresor.pwv');
+    S.file.dirty = false;
+    S.saveState = 'saved';
+    renderStatus();
+    toast('Tresor heruntergeladen. Ersetze damit die alte Tresor-Datei.');
+  }
+
+  async function guardLeave(fn) {
+    if (S.editing && S.editing.changed()) {
+      const ok = await confirmDialog({ title: 'Änderungen verwerfen?', text: 'Dieser Eintrag hat ungespeicherte Änderungen.', confirmLabel: 'Verwerfen', danger: true });
+      if (!ok) return;
+    }
+    fn();
+  }
+
+  function selectEntry(id) {
+    guardLeave(() => { S.editing = null; S.selectedId = id; S.pane = 'detail'; syncPane(); renderList(); renderDetail(); });
+  }
+  function newEntry() {
+    guardLeave(() => { S.editing = { isNew: true, id: null }; S.selectedId = null; S.pane = 'detail'; syncPane(); renderList(); renderDetail(); });
+  }
+  function startEdit(e) { S.editing = { isNew: false, id: e.id }; renderDetail(); }
+
+  function renderDetail() {
+    if (!UI.detail || !S.vault) return;
+    UI.detail.replaceChildren();
+    UI.detail.scrollTop = 0;
+    if (S.editing) return renderEdit();
+    const e = S.vault.data.entries.find(x => x.id === S.selectedId);
+    if (!e) {
+      UI.detail.append(h('div', { class: 'empty-detail' },
+        hatch(120),
+        h('strong', {}, 'Kein Eintrag ausgewählt'),
+        h('span', {}, 'Wähle links einen Eintrag aus oder lege einen neuen an.'),
+        h('button', { class: 'btn primary', type: 'button', onclick: newEntry }, icon('plus'), 'Neuer Eintrag')));
+      return;
+    }
+    renderView(e);
+  }
+
+  function ledgerRow(label, valueNode, actions, extraClass) {
+    return h('div', { class: 'ledger-row' },
+      h('div', { class: 'ledger-label' }, label),
+      h('div', { class: 'ledger-value' + (extraClass ? ' ' + extraClass : '') }, valueNode),
+      h('div', { class: 'ledger-actions' }, ...(actions || [])));
+  }
+  const dash = () => h('span', { class: 'muted' }, 'nicht angegeben');
+  function iconAction(name, label, fn) {
+    return h('button', { class: 'icon-btn', type: 'button', 'aria-label': label, title: label, onclick: fn }, icon(name));
+  }
+
+  function renderView(e) {
+    const href = e.url ? safeUrl(e.url) : null;
+    let shown = false;
+    const pwText = h('span', { class: 'mono' }, e.password ? '••••••••••••' : '');
+    const eyeBtn = h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Passwort anzeigen', title: 'Anzeigen', 'aria-pressed': 'false' }, icon('eye'));
+    eyeBtn.addEventListener('click', () => {
+      shown = !shown;
+      pwText.textContent = shown ? e.password : '••••••••••••';
+      eyeBtn.replaceChildren(icon(shown ? 'eye-off' : 'eye'));
+      eyeBtn.setAttribute('aria-pressed', String(shown));
+      eyeBtn.setAttribute('aria-label', shown ? 'Passwort verbergen' : 'Passwort anzeigen');
+      eyeBtn.title = shown ? 'Verbergen' : 'Anzeigen';
+    });
+
+    UI.detail.append(h('div', { class: 'detail-inner' },
+      h('button', { class: 'btn ghost back', type: 'button', onclick: () => { S.pane = 'list'; syncPane(); } }, icon('back'), 'Zur Liste'),
+      h('div', { class: 'view-head' }, mark(e.title, 'lg'), h('h2', {}, e.title || 'Ohne Titel')),
+      h('div', { class: 'ledger' },
+        ledgerRow('Website',
+          e.url ? (href ? h('a', { href, target: '_blank', rel: 'noopener noreferrer' }, e.url) : e.url) : dash(),
+          e.url ? [href ? h('a', { class: 'icon-btn', href, target: '_blank', rel: 'noopener noreferrer', 'aria-label': 'Website öffnen', title: 'Website öffnen' }, icon('external')) : null, iconAction('copy', 'Adresse kopieren', () => copyText(e.url, 'Adresse kopiert.', false))] : []),
+        ledgerRow('Benutzername', e.username || dash(), e.username ? [iconAction('copy', 'Benutzernamen kopieren', () => copyText(e.username, 'Benutzername kopiert.', false))] : []),
+        ledgerRow('Passwort', e.password ? pwText : dash(), e.password ? [eyeBtn, iconAction('copy', 'Passwort kopieren', () => copyText(e.password, 'Passwort kopiert.', true))] : []),
+        e.notes ? ledgerRow('Notizen', e.notes, [], 'notes') : null),
+      h('div', { class: 'meta' },
+        h('span', {}, 'Erstellt am ' + fmtDate(e.createdAt)),
+        h('span', {}, 'Zuletzt geändert am ' + fmtDate(e.updatedAt))),
+      h('div', { class: 'view-actions' },
+        h('button', { class: 'btn', type: 'button', onclick: () => startEdit(e) }, icon('edit', 18), 'Bearbeiten'),
+        h('button', { class: 'btn danger', type: 'button', onclick: () => deleteEntry(e) }, icon('trash', 18), 'Löschen'))));
+  }
+
+  function renderEdit() {
+    const draft = S.editing;
+    const e = draft.isNew ? { title: '', url: '', username: '', password: '', notes: '' } : S.vault.data.entries.find(x => x.id === draft.id);
+    if (!e) { S.editing = null; return renderDetail(); }
+    const title = h('input', { class: 'input', id: 'f-title', maxlength: '120', autocomplete: 'off', value: e.title });
+    const url = h('input', { class: 'input', id: 'f-url', maxlength: '500', autocomplete: 'off', inputmode: 'url', spellcheck: 'false', placeholder: 'zum Beispiel roblox.com', value: e.url });
+    const user = h('input', { class: 'input', id: 'f-user', maxlength: '200', autocomplete: 'off', spellcheck: 'false', value: e.username });
+    const pass = h('input', { class: 'input mono', id: 'f-pass', type: 'password', maxlength: '500', autocomplete: 'new-password', spellcheck: 'false', value: e.password });
+    const notes = h('textarea', { class: 'input', id: 'f-notes', maxlength: '5000', rows: '5' }, e.notes);
+    const meter = strengthMeter();
+    const err = h('div', { class: 'error', role: 'alert' });
+    pass.addEventListener('input', () => meter.update(pass.value));
+    meter.update(pass.value);
+
+    const eye = h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Passwort anzeigen', title: 'Anzeigen', 'aria-pressed': 'false' }, icon('eye'));
+    eye.addEventListener('click', () => {
+      const show = pass.type === 'password';
+      pass.type = show ? 'text' : 'password';
+      eye.replaceChildren(icon(show ? 'eye-off' : 'eye'));
+      eye.setAttribute('aria-pressed', String(show));
+      eye.setAttribute('aria-label', show ? 'Passwort verbergen' : 'Passwort anzeigen');
+      eye.title = show ? 'Verbergen' : 'Anzeigen';
+    });
+    const gen = h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Passwort erzeugen', title: 'Passwort erzeugen' }, icon('refresh'));
+    gen.addEventListener('click', () => openGenerator(pw => {
+      pass.value = pw;
+      pass.type = 'text';
+      eye.replaceChildren(icon('eye-off'));
+      eye.setAttribute('aria-pressed', 'true');
+      eye.setAttribute('aria-label', 'Passwort verbergen');
+      meter.update(pw);
+    }));
+
+    const read = () => ({ title: title.value.trim(), url: url.value.trim(), username: user.value.trim(), password: pass.value, notes: notes.value });
+    const initial = JSON.stringify({ title: e.title.trim(), url: e.url.trim(), username: e.username.trim(), password: e.password, notes: e.notes });
+    draft.changed = () => JSON.stringify(read()) !== initial;
+
+    const form = h('form', { novalidate: true, onsubmit: ev => { ev.preventDefault(); saveEntry(draft, read(), err, title); } },
+      h('h2', { class: 'form-head' }, draft.isNew ? 'Neuer Eintrag' : 'Eintrag bearbeiten'),
+      h('div', { class: 'field' }, h('label', { for: 'f-title' }, 'Titel'), title),
+      h('div', { class: 'field' }, h('label', { for: 'f-url' }, 'Website'), url),
+      h('div', { class: 'field' }, h('label', { for: 'f-user' }, 'Benutzername oder E-Mail-Adresse'), user),
+      h('div', { class: 'field' }, h('label', { for: 'f-pass' }, 'Passwort'), h('div', { class: 'input-row' }, pass, eye, gen), meter.el),
+      h('div', { class: 'field' }, h('label', { for: 'f-notes' }, 'Notizen'), notes),
+      err,
+      h('div', { class: 'form-actions' },
+        h('button', { class: 'btn primary', type: 'submit' }, 'Speichern'),
+        h('button', { class: 'btn', type: 'button', onclick: () => guardLeave(() => { S.editing = null; if (draft.isNew) S.pane = 'list'; syncPane(); renderDetail(); }) }, 'Abbrechen')));
+    UI.detail.append(h('div', { class: 'detail-inner' },
+      h('button', { class: 'btn ghost back', type: 'button', onclick: () => guardLeave(() => { S.editing = null; S.pane = 'list'; syncPane(); renderDetail(); }) }, icon('back'), 'Zur Liste'),
+      form));
+    title.focus();
+  }
+
+  async function saveEntry(draft, vals, errEl, titleEl) {
+    if (!vals.title) { errEl.textContent = 'Bitte gib einen Titel ein.'; titleEl.focus(); return; }
+    const data = S.vault.data;
+    const now = Date.now();
+    let entry;
+    if (draft.isNew) { entry = { id: newId(), createdAt: now }; data.entries.push(entry); }
+    else entry = data.entries.find(x => x.id === draft.id);
+    if (!entry) return;
+    Object.assign(entry, vals, { updatedAt: now });
+    data.updatedAt = now;
+    S.editing = null; S.selectedId = entry.id; S.pane = 'detail';
+    syncPane(); renderList(); renderDetail();
+    await persist();
+    if (S.saveState === 'saved') toast('Eintrag gespeichert.');
+  }
+
+  async function deleteEntry(e) {
+    const ok = await confirmDialog({ title: 'Eintrag löschen?', text: '„' + (e.title || 'Ohne Titel') + '“ wird endgültig gelöscht. Das lässt sich nicht rückgängig machen.', confirmLabel: 'Löschen', danger: true });
+    if (!ok || !S.vault) return;
+    const data = S.vault.data;
+    const now = Date.now();
+    data.entries = data.entries.filter(x => x.id !== e.id);
+    data.deleted[e.id] = now;
+    data.updatedAt = now;
+    S.selectedId = null; S.pane = 'list';
+    syncPane(); renderList(); renderDetail();
+    await persist();
+    if (S.saveState === 'saved') toast('Eintrag gelöscht.');
+  }
+
+  // ---------- Passwort-Generator ----------
+  function openGenerator(onUse) {
+    const p = S.gen;
+    const out = h('div', { class: 'input mono gen-out', 'aria-live': 'polite' });
+    const meter = strengthMeter();
+    const lenOut = h('output', {}, String(p.length));
+    const range = h('input', { type: 'range', min: '8', max: '64', 'aria-label': 'Länge' });
+    range.value = String(p.length);
+    let current = '';
+    const regen = () => { current = generatePassword(p); out.textContent = current; meter.update(current); };
+    range.addEventListener('input', () => { p.length = Number(range.value); lenOut.textContent = range.value; regen(); });
+    const setKey = key => (val, input) => {
+      p[key] = val;
+      if (!p.lower && !p.upper && !p.digits && !p.symbols) { p[key] = true; input.checked = true; return; }
+      regen();
+    };
+    regen();
+    const body = h('div', {},
+      h('div', { class: 'field' }, h('div', { class: 'label' }, 'Erzeugtes Passwort'), out, meter.el),
+      h('div', { class: 'field' }, h('label', {}, 'Länge'), h('div', { class: 'range-row' }, range, lenOut)),
+      h('div', { class: 'checks' },
+        checkbox('Kleinbuchstaben (a–z)', p.lower, setKey('lower')),
+        checkbox('Großbuchstaben (A–Z)', p.upper, setKey('upper')),
+        checkbox('Ziffern (0–9)', p.digits, setKey('digits')),
+        checkbox('Sonderzeichen (!@#$ …)', p.symbols, setKey('symbols')),
+        checkbox('Verwechselbare Zeichen vermeiden (0 O 1 l I)', p.avoidAmbiguous, setKey('avoidAmbiguous'))));
+    const m = openModal({
+      title: 'Passwort erzeugen', body, wide: true,
+      actions: [
+        h('button', { class: 'btn', type: 'button', onclick: () => regen() }, icon('refresh', 18), 'Neu erzeugen'),
+        h('button', { class: 'btn', type: 'button', onclick: () => copyText(current, 'Passwort kopiert.', true) }, icon('copy', 18), 'Kopieren'),
+        onUse ? h('button', { class: 'btn primary', type: 'button', onclick: () => { onUse(current); m.close(); } }, 'Übernehmen') : null
+      ].filter(Boolean)
+    });
+  }
+
+  // ---------- Einstellungen ----------
+  function openSettings() {
+    const v = S.vault;
+    if (!v) return;
+    const sel = h('select', { class: 'input', id: 's-lock', 'aria-label': 'Automatisch sperren nach' },
+      ...LOCK_CHOICES.map(min => { const o = h('option', { value: String(min) }, plural(min, 'Minute', 'Minuten')); if (min === v.data.settings.autoLockMinutes) o.selected = true; return o; }));
+    sel.addEventListener('change', async () => {
+      v.data.settings.autoLockMinutes = Number(sel.value);
+      v.data.updatedAt = Date.now();
+      resetIdle();
+      await persist();
+      if (S.saveState === 'saved') toast('Einstellung gespeichert.');
+    });
+    const section = (title, ...kids) => h('div', { class: 'settings-section' }, h('h3', {}, title), ...kids);
+    const m = openModal({
+      title: 'Einstellungen', wide: true,
+      body: h('div', {},
+        section('Sicherheit',
+          h('div', { class: 'field' }, h('label', { for: 's-lock' }, 'Automatisch sperren nach'), sel),
+          h('div', { class: 'row-btns' }, h('button', { class: 'btn', type: 'button', onclick: () => { m.close(); openChangePassword(); } }, icon('key', 18), 'Master-Passwort ändern'))),
+        section('Daten',
+          h('div', { class: 'row-btns' },
+            h('button', { class: 'btn', type: 'button', onclick: () => { m.close(); importCsv(); } }, icon('upload', 18), 'Aus CSV importieren'),
+            h('button', { class: 'btn', type: 'button', onclick: () => { m.close(); exportCsv(); } }, icon('download', 18), 'Als CSV exportieren'),
+            h('button', { class: 'btn', type: 'button', onclick: () => { m.close(); mergeFromFile(); } }, icon('refresh', 18), 'Mit anderem Tresor abgleichen'),
+            h('button', { class: 'btn', type: 'button', onclick: () => { downloadCurrent(); } }, icon('download', 18), 'Sicherungskopie herunterladen')),
+          h('p', { class: 'hint', style: 'margin-top:10px' }, 'Beim Abgleichen führst du zwei Kopien deines Tresors zusammen, zum Beispiel die vom PC und die vom Handy.')),
+        section('Über diesen Tresor',
+          h('p', { class: 'small muted' }, 'Datei: ' + (S.file ? S.file.name : '') + '. ' + plural(v.data.entries.length, 'Eintrag', 'Einträge') + '.'),
+          h('p', { class: 'small muted', style: 'margin-top:6px' }, 'Verschlüsselung: AES-256-GCM. Schlüsselableitung: PBKDF2 mit SHA-256 und ' + v.kdf.iterations.toLocaleString('de-DE') + ' Iterationen. Alles geschieht lokal in diesem Browser.')))
+    });
+  }
+
+  function openChangePassword() {
+    const cur = pwField('Aktuelles Master-Passwort', 'cp0', 'current-password');
+    const n1 = pwField('Neues Master-Passwort', 'cp1', 'new-password');
+    const n2 = pwField('Neues Master-Passwort wiederholen', 'cp2', 'new-password');
+    const meter = strengthMeter();
+    n1.input.addEventListener('input', () => meter.update(n1.input.value));
+    n1.wrap.append(meter.el);
+    const err = h('div', { class: 'error', role: 'alert' });
+    const submit = h('button', { class: 'btn primary', type: 'submit' }, 'Master-Passwort ändern');
+    const form = h('form', { novalidate: true, onsubmit: async ev => {
+      ev.preventDefault();
+      err.textContent = '';
+      if (!cur.input.value) { err.textContent = 'Bitte gib dein aktuelles Master-Passwort ein.'; return; }
+      const problem = masterPasswordProblem(n1.input.value, n2.input.value);
+      if (problem) { err.textContent = problem; return; }
+      submit.disabled = true;
+      try {
+        try { await unlockVault(S.file.text, cur.input.value); }
+        catch (e) { if (e instanceof VaultError && e.code === 'auth') { err.textContent = 'Das aktuelle Master-Passwort ist falsch.'; submit.disabled = false; return; } throw e; }
+        const nk = await rekeyVault(n1.input.value);
+        if (!S.vault) return;
+        S.vault.key = nk.key; S.vault.kdf = nk.kdf;
+        S.vault.data.updatedAt = Date.now();
+        await persist();
+        m.close();
+        toast(S.saveState === 'saved' ? 'Master-Passwort geändert.' : 'Master-Passwort geändert. Speichere den Tresor, damit die Änderung auf den Stick gelangt.');
+      } catch (e) {
+        err.textContent = 'Das Master-Passwort konnte nicht geändert werden.';
+        submit.disabled = false;
+      }
+    } }, cur.wrap, n1.wrap, n2.wrap, err,
+      h('div', { class: 'row-btns end' }, h('button', { class: 'btn', type: 'button', onclick: () => m.close() }, 'Abbrechen'), submit));
+    const m = openModal({ title: 'Master-Passwort ändern', body: form });
+  }
+
+  // ---------- Import und Export ----------
+  async function importCsv() {
+    if (!S.vault) return;
+    try {
+      const f = await pickFile('.csv,text/csv');
+      if (!f) return;
+      const { entries, skipped } = entriesFromCsv(f.text);
+      const { added, duplicates } = mergeImported(S.vault.data.entries, entries);
+      if (!added.length) { toast('Es gibt keine neuen Einträge. ' + plural(duplicates, 'Eintrag ist', 'Einträge sind') + ' bereits vorhanden.'); return; }
+      S.vault.data.entries.push(...added);
+      S.vault.data.updatedAt = Date.now();
+      renderList(); if (!S.editing) renderDetail();
+      await persist();
+      const parts = [plural(added.length, 'Eintrag', 'Einträge') + ' importiert.'];
+      if (duplicates) parts.push(plural(duplicates, 'Duplikat', 'Duplikate') + ' übersprungen.');
+      if (skipped) parts.push(plural(skipped, 'leere Zeile', 'leere Zeilen') + ' ignoriert.');
+      await noticeDialog('Import abgeschlossen', parts.join(' ') + ' Lösche die CSV-Datei jetzt, denn sie enthält deine Passwörter im Klartext.');
+    } catch (e) {
+      toast(e instanceof VaultError ? e.message : 'Die CSV-Datei konnte nicht gelesen werden.', 'error');
+    }
+  }
+
+  async function exportCsv() {
+    if (!S.vault) return;
+    const ok = await confirmDialog({
+      title: 'Unverschlüsselt exportieren?',
+      text: 'Die CSV-Datei enthält alle Passwörter im Klartext. Jeder, der sie findet, kann sie lesen. Speichere sie nur kurz und lösche sie danach.',
+      confirmLabel: 'Als CSV exportieren', danger: true
+    });
+    if (!ok || !S.vault) return;
+    downloadText('﻿' + toCsv(S.vault.data.entries), 'passwoerter-export-' + new Date().toISOString().slice(0, 10) + '.csv', 'text/csv;charset=utf-8');
+    toast('CSV-Datei heruntergeladen. Lösche sie nach der Verwendung.');
+  }
+
+  // ---------- Abgleich mit einer anderen Kopie ----------
+  async function mergeFromFile() {
+    if (!S.vault) return;
+    let f;
+    try { f = await pickVaultFile(true); }
+    catch { toast('Die Datei konnte nicht gelesen werden.', 'error'); return; }
+    if (!f) return;
+    try { parseVaultFile(f.text); }
+    catch (e) { toast(e instanceof VaultError ? e.message : 'Die Datei konnte nicht gelesen werden.', 'error'); return; }
+    openMergeDialog(f);
+  }
+
+  function openMergeDialog(f) {
+    const pw = pwField('Master-Passwort der anderen Kopie', 'mg-pw', 'current-password');
+    const err = h('div', { class: 'error', role: 'alert' });
+    const submit = h('button', { class: 'btn primary', type: 'submit' }, 'Abgleichen');
+    const form = h('form', { novalidate: true, onsubmit: async ev => {
+      ev.preventDefault();
+      err.textContent = '';
+      if (!pw.input.value) { err.textContent = 'Bitte gib das Master-Passwort ein.'; return; }
+      submit.disabled = true;
+      submit.textContent = 'Prüfe …';
+      let res;
+      try {
+        const other = await unlockVault(f.text, pw.input.value);
+        if (!S.vault) return;
+        res = mergeData(S.vault.data, other.data);
+      } catch (e) {
+        err.textContent = e instanceof VaultError && e.code === 'auth'
+          ? 'Das Master-Passwort der anderen Kopie ist falsch oder die Datei wurde verändert.'
+          : (e instanceof VaultError ? e.message : 'Die Kopie konnte nicht geöffnet werden.');
+        submit.disabled = false;
+        submit.textContent = 'Abgleichen';
+        return;
+      }
+      m.close();
+      if (!res.changed) {
+        await noticeDialog('Schon auf dem gleichen Stand', 'Die andere Kopie enthält nichts Neues. Es wurde nichts verändert.');
+        return;
+      }
+      S.vault.data = res.data;
+      if (S.selectedId && !res.data.entries.some(e => e.id === S.selectedId)) { S.selectedId = null; S.pane = 'list'; syncPane(); }
+      renderList();
+      if (!S.editing) renderDetail();
+      await persist();
+      const s = res.stats;
+      const parts = [];
+      if (s.added) parts.push('Neu hinzugefügt: ' + s.added + '.');
+      if (s.updated) parts.push('Aktualisiert: ' + s.updated + '.');
+      if (s.removed) parts.push('Entfernt, weil in der anderen Kopie gelöscht: ' + s.removed + '.');
+      if (s.duplicates) parts.push('Bereits vorhanden und übersprungen: ' + s.duplicates + '.');
+      if (!parts.length) parts.push('Die Löschmarkierungen wurden übernommen.');
+      parts.push(S.saveState === 'dirty'
+        ? 'Lade den Tresor jetzt über die Schaltfläche oben herunter.'
+        : S.saveState === 'saved' ? 'Der Tresor ist gespeichert.' : '');
+      parts.push('Kopiere die aktuelle Tresor-Datei danach auch auf dein anderes Gerät, damit beide gleich sind.');
+      await noticeDialog('Abgleich abgeschlossen', parts.filter(Boolean).join(' '));
+    } },
+      h('p', { class: 'hint', style: 'margin-bottom:16px' }, 'Datei: ' + f.name + '. Neue und geänderte Einträge werden übernommen. Was dort gelöscht wurde, wird auch hier entfernt.'),
+      pw.wrap, err,
+      h('div', { class: 'row-btns end' }, h('button', { class: 'btn', type: 'button', onclick: () => m.close() }, 'Abbrechen'), submit));
+    const m = openModal({ title: 'Mit anderem Tresor abgleichen', body: form });
+  }
+
+  // ---------- Speichern ----------
+  function persist() {
+    const v = S.vault, f = S.file;
+    if (!v || !f) return Promise.resolve();
+    S.pending++;
+    S.saveState = 'saving';
+    renderStatus();
+    const job = async () => {
+      try {
+        const text = await encryptVault(v.data, v.key, v.kdf);
+        f.text = text;
+        if (f.handle) {
+          const w = await f.handle.createWritable();
+          try { await w.write(text); await w.close(); } catch (err) { try { await w.abort(); } catch { /* ignorieren */ } throw err; }
+          f.dirty = false;
+          S.saveState = 'saved';
+        } else {
+          f.dirty = true;
+          S.saveState = 'dirty';
+        }
+      } catch (err) {
+        f.dirty = true;
+        S.saveState = 'error';
+        if (S.vault) toast('Speichern fehlgeschlagen. Ist der USB-Stick noch angeschlossen?', 'error', 6000);
+      }
+      S.pending--;
+      if (S.pending > 0) S.saveState = 'saving';
+      renderStatus();
+    };
+    S.queue = S.queue.then(job);
+    return S.queue;
+  }
+
+  // ---------- Sperren ----------
+  function resetIdle() {
+    clearTimeout(S.idleTimer);
+    if (!S.vault) return;
+    S.idleTimer = setTimeout(() => lock('auto'), S.vault.data.settings.autoLockMinutes * 60000);
+  }
+  function onActivity() {
+    if (!S.vault) return;
+    const now = Date.now();
+    if (now - S.lastActivity < 1000) return;
+    S.lastActivity = now;
+    resetIdle();
+  }
+  ['pointerdown', 'pointermove', 'keydown', 'wheel', 'touchstart'].forEach(ev => window.addEventListener(ev, onActivity, { capture: true, passive: true }));
+
+  function lock(reason) {
+    if (!S.vault) return;
+    clearTimeout(S.idleTimer);
+    closeAllModals();
+    clearClipboard();
+    const hadPending = S.pending > 0;
+    S.vault = null; S.editing = null; S.selectedId = null; S.query = '';
+    S.lockReason = reason || 'manual';
+    S.screen = 'unlock';
+    render();
+    // Läuft noch ein Speichervorgang, zeigt der Sperrbildschirm den Hinweis erst nach dessen Ende.
+    if (hadPending) {
+      S.queue.then(() => { if (S.screen === 'unlock' && !S.vault && S.file && S.file.dirty) render(); });
+    }
+  }
+
+  window.addEventListener('beforeunload', ev => {
+    if (S.file && S.file.dirty) { ev.preventDefault(); ev.returnValue = ''; }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
